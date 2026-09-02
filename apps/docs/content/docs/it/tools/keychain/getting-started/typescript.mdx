@@ -25,6 +25,11 @@ pnpm add @solana/keychain-crossmint   # Crossmint
 pnpm add @solana/keychain-dfns        # Dfns
 pnpm add @solana/keychain-openfort    # Openfort
 pnpm add @solana/keychain-para        # Para
+pnpm add @solana/keychain-utila       # Utila
+pnpm add @solana/keychain-fordefi     # Fordefi
+
+# Kit client plugins (keychainSigner / keychainPayer / keychainIdentity)
+pnpm add @solana/keychain-kit-plugin
 ```
 
 ## Utilizzo di base
@@ -97,14 +102,75 @@ async function signWithKeychain(signer: SolanaSigner) {
 }
 ```
 
-## Configurazione backend
+### Utilizzo con un Kit Client (plugin keychainSigner)
+
+`@solana/keychain-kit-plugin` installa un keychain signer direttamente su un
+[Kit client](https://github.com/anza-xyz/kit), collegandolo come `payer` e
+`identity` così da evitare la configurazione manuale di `pipe` mostrata in
+precedenza:
+
+```typescript
+import { createClient } from "@solana/kit";
+import { keychainSigner } from "@solana/keychain-kit-plugin";
+
+const client = await createClient().use(
+  keychainSigner({
+    backend: "privy",
+    appId: process.env.PRIVY_APP_ID!,
+    appSecret: process.env.PRIVY_APP_SECRET!,
+    walletId: process.env.PRIVY_WALLET_ID!
+  })
+);
+
+client.payer; // SolanaSigner — also a Kit TransactionSigner
+client.identity; // same signer instance
+```
+
+Il plugin accetta la stessa configurazione con tag backend di
+`createKeychainSigner`, e viene incluso nel bundle solo il backend a cui delega
+(i pacchetti backend vengono caricati tramite `import()` dinamico).
+
+Usa `keychainPayer` o `keychainIdentity` per impostare un solo ruolo e combinare
+backend su un singolo client:
+
+```typescript
+import { createClient } from "@solana/kit";
+import { keychainIdentity, keychainPayer } from "@solana/keychain-kit-plugin";
+
+const client = await createClient()
+  .use(
+    keychainPayer({
+      backend: "memory",
+      privateKeyPath: "~/.config/solana/id.json"
+    })
+  )
+  .use(keychainIdentity({ backend: "turnkey", ...turnkeyConfig }));
+```
+
+Hai già un `SolanaSigner`? Ogni keychain signer è un Kit `TransactionSigner`
+valido, quindi puoi installarne uno esistente con
+[`@solana/kit-plugin-signer`](https://github.com/anza-xyz/kit-plugins/tree/main/packages/kit-plugin-signer)
+al suo posto (`pnpm add @solana/kit-plugin-signer`):
+
+```typescript
+import { signer } from "@solana/kit-plugin-signer";
+import { createKeychainSigner } from "@solana/keychain";
+
+const mySigner = await createKeychainSigner({
+  backend: "vault",
+  ...vaultConfig
+});
+const client = createClient().use(signer(mySigner));
+```
+
+## Configurazione del Backend
 
 ### HashiCorp Vault
 
 ```typescript
-import { VaultSigner } from "@solana/keychain-vault";
+import { createVaultSigner } from "@solana/keychain-vault";
 
-const signer = new VaultSigner({
+const signer = createVaultSigner({
   vaultAddr: "https://vault.example.com:8200",
   vaultToken: "hvs.xxxxx",
   keyName: "my-solana-key",
@@ -115,9 +181,9 @@ const signer = new VaultSigner({
 ### AWS KMS
 
 ```typescript
-import { AwsKmsSigner } from "@solana/keychain-aws-kms";
+import { createAwsKmsSigner } from "@solana/keychain-aws-kms";
 
-const signer = new AwsKmsSigner({
+const signer = createAwsKmsSigner({
   keyId: "alias/my-solana-key",
   publicKey: "base58_public_key",
   region: "us-east-1" // optional
@@ -127,9 +193,9 @@ const signer = new AwsKmsSigner({
 ### Privy
 
 ```typescript
-import { PrivySigner } from "@solana/keychain-privy";
+import { createPrivySigner } from "@solana/keychain-privy";
 
-const signer = await PrivySigner.create({
+const signer = await createPrivySigner({
   appId: "app_id",
   appSecret: "app_secret",
   walletId: "wallet_id"
@@ -139,9 +205,9 @@ const signer = await PrivySigner.create({
 ### Turnkey
 
 ```typescript
-import { TurnkeySigner } from "@solana/keychain-turnkey";
+import { createTurnkeySigner } from "@solana/keychain-turnkey";
 
-const signer = new TurnkeySigner({
+const signer = createTurnkeySigner({
   apiPublicKey: "api_public_key",
   apiPrivateKey: "api_private_key",
   organizationId: "org_id",
@@ -153,15 +219,14 @@ const signer = new TurnkeySigner({
 ### Fireblocks
 
 ```typescript
-import { FireblocksSigner } from "@solana/keychain-fireblocks";
+import { createFireblocksSigner } from "@solana/keychain-fireblocks";
 
-const signer = new FireblocksSigner({
+const signer = await createFireblocksSigner({
   apiKey: "api_key",
   privateKeyPem: "-----BEGIN RSA PRIVATE KEY-----\n...",
   vaultAccountId: "0",
   assetId: "SOL" // or "SOL_TEST" for devnet
 });
-await signer.init();
 ```
 
 ### CDP (Coinbase Developer Platform)
@@ -202,7 +267,7 @@ const signer = await createDfnsSigner({
 });
 ```
 
-### Para
+### Paragrafo
 
 ```typescript
 import { createParaSigner } from "@solana/keychain-para";
@@ -213,6 +278,44 @@ const signer = await createParaSigner({
 });
 ```
 
+### Fordefi
+
+Fordefi dispone di due modalità di firma, selezionate in base al fatto che si passi o meno `chain`. Le richieste API vengono autenticate con una firma di richiesta ECDSA P-256 — fornisci la chiave di firma come `privateKeyPem`, oppure conservala in un KMS/HSM passando un `requestSigner`.
+
+**Modalità Solana nativa** (consigliata per l'uso on-chain): imposta `chain`, e Fordefi firma e trasmette la transazione autonomamente. Poiché Fordefi potrebbe sostituire il blockhash o le commissioni prima della firma, il firmatario è un `TransactionSendingSigner` di Kit — utilizzalo con `signAndSendTransactionMessageWithSigners`, non con il flusso partial-signer mostrato in precedenza.
+
+```typescript
+import { createFordefiSigner } from "@solana/keychain-fordefi";
+import { signAndSendTransactionMessageWithSigners } from "@solana/signers";
+import { readFileSync } from "node:fs";
+
+const signer = await createFordefiSigner({
+  accessToken: process.env.FORDEFI_ACCESS_TOKEN!,
+  vaultId: process.env.FORDEFI_VAULT_ID!,
+  publicKey: process.env.FORDEFI_PUBLIC_KEY!, // Solana vault address (base58)
+  privateKeyPem: readFileSync("./secret/private.pem", "utf8"),
+  chain: "solana_devnet", // or "solana_mainnet"
+  fee: { type: "custom", priority_fee: "1000" } // optional
+});
+
+const signature =
+  await signAndSendTransactionMessageWithSigners(transactionMessage);
+```
+
+**Modalità black box**: ometti `chain`. Fordefi firma i byte grezzi e non trasmette la transazione; sei tu ad assemblare e inviare la transazione. Utilizzala con un vault black box di Fordefi.
+
+```typescript
+import { createFordefiSigner } from "@solana/keychain-fordefi";
+import { readFileSync } from "node:fs";
+
+const signer = await createFordefiSigner({
+  accessToken: process.env.FORDEFI_ACCESS_TOKEN!,
+  vaultId: process.env.FORDEFI_BB_VAULT_ID!,
+  publicKey: process.env.FORDEFI_BB_PUBLIC_KEY!,
+  privateKeyPem: readFileSync("./secret/private.pem", "utf8")
+});
+```
+
 ## Interfaccia SolanaSigner
 
 L'interfaccia `SolanaSigner` estende i tipi `@solana/signers` per la piena
@@ -220,8 +323,7 @@ compatibilità:
 
 ```typescript
 interface SolanaSigner<TAddress extends string = string>
-  extends TransactionPartialSigner<TAddress>,
-    MessagePartialSigner<TAddress> {
+  extends TransactionPartialSigner<TAddress>, MessagePartialSigner<TAddress> {
   // Public key address
   readonly address: Address<TAddress>;
 
@@ -269,5 +371,5 @@ class MyCustomSigner implements SolanaSigner {
 }
 ```
 
-Consulta la [guida Aggiunta di Signer](/docs/tools/keychain/adding-signers) per
-integrare servizi aggiuntivi di gestione delle chiavi.
+Consulta la [guida all'aggiunta di Signer](/docs/tools/keychain/adding-signers)
+per integrare servizi aggiuntivi di gestione delle chiavi.

@@ -16,11 +16,23 @@ import { NoteTooltip } from "./components/code/notes.tooltip";
 import { InlineCode } from "./components/code/inline-code";
 import { Terminal } from "./components/code/terminal";
 import { Mermaid } from "./components/code/mermaid";
-import { Download, Rocket, Coins } from "lucide-react";
+import { ArrowToBottom as Download } from "@boxicons/react/ArrowToBottom";
+import { Rocket } from "@boxicons/react/Rocket";
+import { Coins } from "@boxicons/react/Coins";
 import { ScrollyCoding } from "./components/code/scrollycoding";
 import { CodePlaceholder } from "./components/code/scrollycoding.client";
+import { File, Files, Folder } from "./components/ui/files";
 import { SideBySide } from "./components/side-by-side";
 import { CodeReference } from "./components/code-reference";
+import {
+  AccountsRpc,
+  AdminRpc,
+  CheatcodesRpc,
+  NetworkRpc,
+  NodeRpc,
+  TransactionsRpc,
+} from "@/components/rpc/RpcPageContent";
+import { WebSocketsRpc } from "@/components/rpc/WebSocketsRpc";
 
 export const mdxComponents = {
   ...defaultMdxComponents,
@@ -30,6 +42,9 @@ export const mdxComponents = {
   Step,
   Accordion,
   Accordions,
+  Files,
+  Folder,
+  File,
   Tab,
   Tabs,
   img: Image,
@@ -44,11 +59,23 @@ export const mdxComponents = {
   CodePlaceholder,
   SideBySide,
   CodeReference,
+  DocsDiagram,
+  AccountsRpc,
+  AdminRpc,
+  CheatcodesRpc,
+  NetworkRpc,
+  NodeRpc,
+  TransactionsRpc,
+  WebSocketsRpc,
   // Icons
   Download,
   Rocket,
   Coins,
 };
+
+function DocsDiagram({ src, alt }: { src: string; alt: string }) {
+  return <ThemedDiagram src={src} alt={alt} className="first:-mt-6" />;
+}
 
 function DocsKitCode(props: { codeblock: RawCode }) {
   const { codeblock, ...rest } = props;
@@ -74,6 +101,16 @@ function Link(props: LinkProps) {
 }
 
 function Image(props: ImgHTMLAttributes<HTMLImageElement>) {
+  const src = typeof props.src === "string" ? props.src : "";
+  const isThemedDiagram =
+    (src.startsWith("/assets/docs/core/") ||
+      src === "/assets/docs/tools/kora/kora.svg") &&
+    src.endsWith(".svg");
+
+  if (isThemedDiagram) {
+    return <ThemedDiagram {...props} src={src} showCaption />;
+  }
+
   return (
     <span className="block">
       <img {...props} className="w-full mb-4 rounded-lg" />
@@ -84,20 +121,62 @@ function Image(props: ImgHTMLAttributes<HTMLImageElement>) {
   );
 }
 
+function ThemedDiagram({
+  src,
+  alt = "",
+  className = "",
+  showCaption = false,
+  ...props
+}: ImgHTMLAttributes<HTMLImageElement> & {
+  src: string;
+  showCaption?: boolean;
+}) {
+  const lightSrc = src.replace(/\.svg$/, "-light.svg");
+
+  return (
+    <figure className={`not-prose mt-5 mb-8 ${className}`}>
+      <img
+        {...props}
+        src={lightSrc}
+        alt={alt}
+        className="block h-auto w-full dark:hidden"
+        decoding="async"
+        loading="lazy"
+      />
+      <img
+        {...props}
+        src={src}
+        alt={alt}
+        className="hidden h-auto w-full dark:block"
+        decoding="async"
+        loading="lazy"
+      />
+      {showCaption && alt ? (
+        <figcaption className="mt-2 text-center text-sm text-fd-muted-foreground">
+          {alt}
+        </figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
 function CodeTabs(props: unknown) {
   const { data, error } = Block.extend({
     code: z.array(CodeBlock),
     flags: z.string().optional(),
     storage: z.string().optional(),
+    runner: z.string().optional(),
   }).safeParse(props);
 
   if (error) {
     throw betterError(error, "CodeTabs");
   }
 
-  const { code, flags, storage } = data;
+  const { code, flags, storage, runner } = data;
 
-  return <Code codeblocks={code} flags={flags} storage={storage} />;
+  return (
+    <Code codeblocks={code} flags={flags} storage={storage} runner={runner} />
+  );
 }
 
 function TerminalPicker(props: unknown) {

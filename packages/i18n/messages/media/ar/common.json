@@ -1,1 +1,133 @@
-{}
+{
+  "changelog": {
+    "breadcrumbLabel": "مسار التنقل",
+    "breadcrumb": "سجل التغييرات",
+    "updatedWeekly": "يُحدَّث أسبوعياً",
+    "kicker": "ملاحظات الإصدار للمطورين",
+    "title": "سجل تغييرات سولانا",
+    "description": "سجل تغييرات سولانا هو سجل أسبوعي لتغييرات البروتوكول، وإصدارات validator، وتحسينات RPC، وتحديثات SDK، وأدوات المطورين التي يتم شحنها عبر النظام البيئي.",
+    "rssFeed": "خلاصة RSS",
+    "developerResources": "موارد المطورين",
+    "subscribeLabel": "احصل على سجل التغييرات في بريدك الوارد",
+    "emailPlaceholder": "you@company.com",
+    "subscribe": "اشتراك",
+    "subscribing": "جارٍ الاشتراك…",
+    "subscribeSuccess": "لقد اشتركت بنجاح.",
+    "subscribeError": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "releaseLog": "سجل الإصدارات",
+    "latest": "الأحدث",
+    "archiveGroup": "الأرشيف",
+    "emptyTitle": "العدد الأول في طريقه إليك.",
+    "emptyDescription": "تابعنا للاطلاع على تحديثات هندسة سولانا الأسبوعية.",
+    "loadMore": "تحميل الإصدارات الأقدم",
+    "loadingMore": "جارٍ تحميل الإصدارات…",
+    "endOfArchive": "نهاية الأرشيف",
+    "loadError": "تعذّر تحميل الأرشيف. يرجى المحاولة مرة أخرى."
+  },
+  "news": {
+    "masthead": {
+      "wordmark": "أخبار سولانا",
+      "tagline": "آخر المستجدات من منظومة سولانا",
+      "navLabel": "أقسام الأخبار",
+      "latest": "الأحدث"
+    },
+    "front": {
+      "railTitle": "المزيد من أبرز القصص",
+      "latestTitle": "الأحدث",
+      "emptyLatest": "ستظهر المزيد من القصص هنا عند نشرها.",
+      "loadMore": {
+        "loading": "جارٍ تحميل المزيد من المنشورات...",
+        "complete": "لا توجد منشورات أخرى للتحميل"
+      }
+    },
+    "vertical": {
+      "tagline": "أحدث تغطيات {category} من منظومة سولانا",
+      "eyebrow": "قسم الأخبار",
+      "description": "أحدث القصص والتحديثات والتحليلات من قسم أخبار {category}."
+    },
+    "sectionHeader": {
+      "viewAll": "عرض الكل"
+    },
+    "metadata": {
+      "listing": {
+        "title": "أخبار سولانا: تحديثات النظام البيئي والمطورين",
+        "description": "اقرأ أحدث أخبار سولانا، وتحديثات النظام البيئي، وإصدارات المطورين، وتغطية DeFi، والتبني المؤسسي، وقصص المجتمع من جميع أنحاء الشبكة."
+      },
+      "postNotFound": {
+        "title": "المنشور غير موجود"
+      },
+      "categoryNotFound": {
+        "title": "التصنيف غير موجود"
+      },
+      "category": {
+        "title": "أخبار {category}",
+        "description": "اقرأ أحدث أخبار {category}، وتحديثات المنتجات، وقصص النظام البيئي، وإصدارات المطورين، والتحليلات من جميع أنحاء شبكة سولانا."
+      }
+    },
+    "campaignHero": {
+      "regionLabel": "فعالية مميزة"
+    },
+    "campaigns": {
+      "breakpoint-2026": {
+        "eyebrow": "سولانا Breakpoint 2026",
+        "title": "Breakpoint في طريقها إلى لندن",
+        "description": "يحطّ المؤتمر الرئيسي لمنظومة سولانا رحاله في Olympia London، خلال الفترة 15–17 نوفمبر 2026. انضم إلى البنّائين والمؤسسات وصانعي السياسات الذين يشكّلون أسواق رأس المال على الإنترنت.",
+        "primaryCta": "سجّل في Breakpoint",
+        "secondaryCta": "كن راعياً",
+        "imageAlt": "شعار Breakpoint 2026 فوق أفق لندن الأرجواني"
+      }
+    }
+  },
+  "upgrades": {
+    "metadata": {
+      "title": "ترقيات شبكة سولانا",
+      "description": "تتبّع ترقيات شبكة سولانا، ودعم العملاء، وتغييرات البروتوكول، وحالة الطرح، وتحسينات الأداء عبر النظام البيئي.",
+      "notFound": "الترقية غير موجودة"
+    },
+    "listing": {
+      "kicker": "إشعارات ترقية الشبكة",
+      "title": "ترقيات سولانا",
+      "description": "تتبّع تغييرات الشبكة، وإجراءات validator، ودعم العملاء، وحالة الطرح لترقيات بروتوكول سولانا والأداء.",
+      "empty": "لا توجد ترقيات منشورة.",
+      "releaseLabel": "الإصدار",
+      "allReleases": "جميع الإصدارات",
+      "releaseOption": "{name} — {status}",
+      "expectedDate": "متوقع في {date}",
+      "releaseOverview": "نظرة عامة على الإصدار",
+      "viewDetails": "عرض التفاصيل",
+      "viewList": "قائمة",
+      "viewGrid": "شبكة",
+      "columnUpgrade": "الترقية",
+      "columnKeyMetric": "المقياس الرئيسي",
+      "columnStatus": "الحالة"
+    },
+    "releaseStatus": {
+      "planned": "مخطط",
+      "shipped": "تم الإطلاق"
+    },
+    "stage": {
+      "planned": "مخطط",
+      "in_development": "قيد التطوير",
+      "pending_activation": "في انتظار تفعيل الميزة",
+      "live": "مباشر على الشبكة الرئيسية"
+    },
+    "detail": {
+      "back": "العودة إلى الترقيات",
+      "share": "مشاركة:",
+      "shareOnTwitter": "مشاركة على تويتر",
+      "shareOnFacebook": "مشاركة على فيسبوك",
+      "shareOnLinkedin": "مشاركة على لينكد إن",
+      "shareOnTelegram": "مشاركة على تيليغرام",
+      "bylineWithDate": "{date}، بقلم {author}",
+      "byline": "بقلم {author}"
+    },
+    "featureActivation": {
+      "columnCluster": "المجموعة",
+      "columnStatus": "حالة التفعيل",
+      "notActivated": "غير مفعّل",
+      "active": "مفعّل",
+      "liveInEpoch": "مباشر في epoch {epoch}",
+      "unavailable": "غير متاح"
+    }
+  }
+}

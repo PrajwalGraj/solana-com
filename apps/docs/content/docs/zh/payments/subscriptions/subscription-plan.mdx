@@ -11,22 +11,18 @@ description: 设置订阅计划交易的指南。
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```bash
     pnpm add @solana/subscriptions @solana/kit @solana/kit-plugin-rpc @solana/kit-plugin-signer @solana-program/token
     ```
-
   </Tab>
 
   <Tab value="Rust">
-
     ```toml
     [dependencies]
-    subscriptions = "^0.1"
-    solana-instruction = "^2"
+    subscriptions = "0.5.0"
+    solana-instruction = "^3"
     solana-address = { version = "^2", features = ["curve25519"] }
     ```
-
   </Tab>
 </Tabs>
 
@@ -34,9 +30,10 @@ description: 设置订阅计划交易的指南。
 
 商家拥有该计划。计划 PDA 由商家地址和 `planId` 派生而来。
 
+赞助商可以在商家保留计划所有权的情况下，通过传入可选的 `payer` 参数来为计划的 rent 提供资金。删除计划时，退款将归还给所有者而非付款方，因此请在链下管理赞助权限。
+
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { address, createClient } from '@solana/kit';
     import { solanaLocalRpc } from '@solana/kit-plugin-rpc';
@@ -78,7 +75,6 @@ description: 设置订阅计划交易的指南。
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use solana_address::{address, Address};
     use subscriptions::{generated::{instructions::*, types::*}, SUBSCRIPTIONS_ID};
@@ -132,9 +128,17 @@ description: 设置订阅计划交易的指南。
 
 商家可以在创建后更新可变的计划字段。现有订阅者保留他们接受的条款,而新订阅者则接受当前的计划条款。
 
+以下规则适用：
+
+- 有限的 `endTs` 只能缩短，不能延长或清除 (`PlanEndTsCannotExtend`)。
+- 在 `Sunset`
+  计划中，您可以移除拉取方（新集合必须是当前集合的子集）以撤销已泄露的拉取方；状态、`endTs`
+  和元数据将保持冻结。
+- 只要 `endTs` 未更改，在计划最终计费周期内均可进行编辑。
+- 该指令携带签名时观察到的计划状态（`expectedCreatedAt`、`expectedEndTs`、`expectedPullers`、`expectedMetadataUri`）。如果当前计划状态与之不符，更新将被拒绝（`StalePlanApproval`），因此过期的已签名更新无法恢复已移除的拉取方或撤销后续编辑。插件客户端的 `updatePlan` 会自动为您获取最新状态；如需手动构建，请自行获取计划并传入相应字段。
+
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { PlanStatus } from '@solana/subscriptions';
 
@@ -156,7 +160,6 @@ description: 设置订阅计划交易的指南。
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     let new_puller: Address = address!("NEW_PULLER_WALLET_ADDRESS_HERE");
     let mut updated_pullers = [Address::default(); 4];
@@ -166,14 +169,25 @@ description: 设置订阅计划交易的指南。
     let updated_metadata_bytes = b"https://example.com/updated-plan.json";
     updated_metadata_uri[..updated_metadata_bytes.len()].copy_from_slice(updated_metadata_bytes);
 
+    let (event_authority, _) =
+        Address::find_program_address(&[b"event_authority"], &SUBSCRIPTIONS_ID);
+
+    // Fetch and decode the live plan account before building UpdatePlanData.
+    let fetched_plan: Plan = fetched_plan;
+
     let update_plan_ix = UpdatePlanBuilder::new()
         .owner(merchant)
         .plan_pda(plan_pda)
+        .event_authority(event_authority)
         .update_plan_data(UpdatePlanData {
             status: PlanStatus::Active as u8,
             end_ts: 0,
             pullers: updated_pullers,
             metadata_uri: updated_metadata_uri,
+            expected_created_at: fetched_plan.data.terms.created_at,
+            expected_end_ts: fetched_plan.data.end_ts,
+            expected_pullers: fetched_plan.data.pullers,
+            expected_metadata_uri: fetched_plan.data.metadata_uri,
         })
         .instruction();
     ```
@@ -183,11 +197,12 @@ description: 设置订阅计划交易的指南。
 
 ## 订阅
 
-订阅者接受当前计划条款。订阅 PDA 从计划 PDA 和订阅者地址派生而来。
+订阅者接受当前计划条款。订阅 PDA 由计划 PDA 和订阅者地址派生而来。
+
+若要将权限初始化与订阅操作合并为单笔交易，请将哨兵值 `UNKNOWN_INIT_ID`（由 TypeScript SDK 导出）作为 `expectedSubscriptionAuthorityInitId` 传入。程序仅在权限于当前 slot 内创建时才予以接受，因此该哨兵值适用于全新注册；若用户的权限创建于更早的 slot，则必须传入真实的 `initId`（插件客户端会自动为您获取），否则调用将以 `StaleSubscriptionAuthority` 错误失败。
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { createClient } from '@solana/kit';
     import { solanaLocalRpc } from '@solana/kit-plugin-rpc';
@@ -248,7 +263,6 @@ description: 设置订阅计划交易的指南。
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use subscriptions::{accounts::Plan, generated::{instructions::*, types::*}};
 
@@ -306,12 +320,11 @@ description: 设置订阅计划交易的指南。
 
 ## 收取付款
 
-商家或白名单中的授权扣款方对收款进行签名。当计划使用目标地址白名单时，接收代币账户的所有者必须在
-`destinations` 中列出。
+商户或已列入白名单的拉取方签署收款操作。当计划使用目标地址白名单时，接收方 token
+account 的所有者必须列于 `destinations` 中。
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     const receiverAta = address('MERCHANT_TOKEN_ACCOUNT_ADDRESS_HERE');
 
@@ -332,7 +345,6 @@ description: 设置订阅计划交易的指南。
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use subscriptions::{TransferData, TransferSubscriptionBuilder};
 
@@ -354,13 +366,12 @@ description: 设置订阅计划交易的指南。
   </Tab>
 </Tabs>
 
-## 取消和撤销
+## 取消与撤销
 
-取消操作会将订阅标记为结束状态。撤销操作会在取消到期时间过后关闭订阅 PDA。这两个交易都需要订阅者签名。
+取消操作将订阅标记为即将结束。撤销操作则在取消到期后关闭订阅的 PDA。订阅者需对两笔交易进行签名。
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     await subscriberClient.subscriptions.instructions
       .cancelSubscription({
@@ -383,7 +394,6 @@ description: 设置订阅计划交易的指南。
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use solana_instruction::AccountMeta;
     use subscriptions::generated::instructions::*;
@@ -405,12 +415,112 @@ description: 设置订阅计划交易的指南。
   </Tab>
 </Tabs>
 
+## 立即取消
+
+当订阅者与当前计划所有者同时签名时，`cancelSubscriptionNow` 会在取消时立即使订阅到期，而非等到账单周期结束。它还可以缩短待处理的宽限期取消。该批准与签名时观察到的周期开始时间绑定；若订阅自那以后已发生变更，交易将被拒绝（`StaleSubscriptionApproval`）。
+
+<Tabs items={["TypeScript", "Rust"]}>
+  <Tab value="TypeScript">
+    ```ts
+    import { fetchSubscriptionDelegation } from '@solana/subscriptions';
+
+    const subscription = await fetchSubscriptionDelegation(
+      subscriberClient.rpc,
+      subscriptionPda,
+    );
+
+    await subscriberClient.subscriptions.instructions
+      .cancelSubscriptionNow({
+        subscriber: subscriberSigner,
+        merchant: merchantSigner,
+        planPda,
+        expectedCurrentPeriodStartTs: subscription.data.currentPeriodStartTs,
+      })
+      .sendTransaction();
+    ```
+
+  </Tab>
+
+  <Tab value="Rust">
+    ```rust
+    use subscriptions::{accounts::SubscriptionDelegation, generated::{instructions::*, types::*}};
+
+    // Fetch and decode the subscription account before building the data.
+    let fetched_subscription: SubscriptionDelegation = fetched_subscription;
+
+    let cancel_now_ix = CancelSubscriptionNowBuilder::new()
+        .subscriber(subscriber)
+        .merchant(merchant)
+        .plan_pda(plan_pda)
+        .subscription_pda(subscription_pda)
+        .event_authority(event_authority)
+        .cancel_subscription_now_data(CancelSubscriptionNowData {
+            expected_current_period_start_ts: fetched_subscription.current_period_start_ts,
+        })
+        .instruction();
+    ```
+
+  </Tab>
+</Tabs>
+
+## 恢复订阅
+
+已取消的订阅在被撤销之前可以重新激活。一旦撤销，订阅账户将被关闭，订阅者必须重新
+[订阅](#subscribe)。恢复订阅需要订阅者提供该计划铸币的
+`SubscriptionAuthority`，程序将对其进行验证（所有者、铸币及
+`init_id`），若已过期或被重新初始化则拒绝操作。
+
+该指令携带订阅者签名时观察到的到期时间（`expectedExpiresAtTs`）；若不匹配则会被拒绝（`StaleSubscriptionApproval`），因此过期的已签名恢复操作无法清除订阅者从未批准的后续取消。
+
+<Tabs items={["TypeScript", "Rust"]}>
+  <Tab value="TypeScript">
+    ```ts
+    import { fetchSubscriptionDelegation } from '@solana/subscriptions';
+
+    const subscription = await fetchSubscriptionDelegation(
+      subscriberClient.rpc,
+      subscriptionPda,
+    );
+
+    await subscriberClient.subscriptions.instructions
+      .resumeSubscription({
+        subscriber: subscriberSigner,
+        planPda,
+        tokenMint,
+        expectedExpiresAtTs: subscription.data.expiresAtTs,
+      })
+      .sendTransaction();
+    ```
+
+  </Tab>
+
+  <Tab value="Rust">
+    ```rust
+    use subscriptions::generated::instructions::*;
+
+    let (event_authority, _) =
+        Address::find_program_address(&[b"event_authority"], &SUBSCRIPTIONS_ID);
+
+    let resume_ix = ResumeSubscriptionBuilder::new()
+        .subscriber(subscriber)
+        .plan_pda(plan_pda)
+        .subscription_pda(subscription_pda)
+        .subscription_authority(subscription_authority)
+        .event_authority(event_authority)
+        .resume_data(ResumeData {
+            expected_expires_at_ts: fetched_subscription.expires_at_ts,
+        })
+        .instruction();
+    ```
+
+  </Tab>
+</Tabs>
+
 ## 注意事项
 
-- `amount` 以基础单位表示。对于 6 位小数的代币,`5_000_000` 表示 `5` 个代币。
-- TypeScript SDK 在执行 `subscribe`
-  时会自动获取实时计划条款(当您省略这些参数时)。
-- Rust `SubscribeBuilder` 需要预期的计划条款。请先获取并解码计划账户,然后通过
-  `SubscribeData` 传递这些字段。
-- 只有商家或在 `pullers` 中列出的钱包可以收取款项。
-- 订阅者签署设置、取消和撤销交易。商家或授权的扣款方签署收款交易。
+- `amount` 以基本单位表示。对于 6 位小数的代币，`5_000_000` 表示 `5` 个代币。
+- TypeScript SDK 在调用 `subscribe` 时，若未传入计划条款，将自动获取最新条款。
+- Rust 的 `SubscribeBuilder` 需要预期的计划条款。请先获取并解码计划账户，再通过
+  `SubscribeData` 传入相应字段。
+- 只有商户或在 `pullers` 中列出的钱包才能收款。
+- 订阅者签署设置、取消和撤销交易；商户或已授权的拉取方签署收款交易。

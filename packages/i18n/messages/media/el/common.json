@@ -1,1 +1,133 @@
-{}
+{
+  "changelog": {
+    "breadcrumbLabel": "Breadcrumb",
+    "breadcrumb": "Αρχείο αλλαγών",
+    "updatedWeekly": "Ενημερώνεται εβδομαδιαία",
+    "kicker": "Σημειώσεις έκδοσης για προγραμματιστές",
+    "title": "Solana Changelog",
+    "description": "Το Solana Changelog είναι ένα εβδομαδιαίο αρχείο αλλαγών πρωτοκόλλου, εκδόσεων validator, βελτιώσεων RPC, ενημερώσεων SDK και εργαλείων ανάπτυξης που αποστέλλονται σε ολόκληρο το οικοσύστημα.",
+    "rssFeed": "Ροή RSS",
+    "developerResources": "Πόροι για προγραμματιστές",
+    "subscribeLabel": "Λάβετε το changelog στο inbox σας",
+    "emailPlaceholder": "you@company.com",
+    "subscribe": "Εγγραφή",
+    "subscribing": "Εγγραφή σε εξέλιξη…",
+    "subscribeSuccess": "Έχετε εγγραφεί.",
+    "subscribeError": "Κάτι πήγε στραβά. Παρακαλούμε δοκιμάστε ξανά.",
+    "releaseLog": "Αρχείο εκδόσεων",
+    "latest": "Τελευταίο",
+    "archiveGroup": "Αρχείο",
+    "emptyTitle": "Το πρώτο τεύχος είναι καθ' οδόν.",
+    "emptyDescription": "Ελέγξτε ξανά για εβδομαδιαίες ενημερώσεις μηχανικής της Solana.",
+    "loadMore": "Φόρτωση παλαιότερων τευχών",
+    "loadingMore": "Φόρτωση τευχών…",
+    "endOfArchive": "Τέλος αρχείου",
+    "loadError": "Δεν ήταν δυνατή η φόρτωση του αρχείου. Παρακαλούμε δοκιμάστε ξανά."
+  },
+  "news": {
+    "masthead": {
+      "wordmark": "Solana News",
+      "tagline": "Ενημερώσεις από όλο το οικοσύστημα Solana",
+      "navLabel": "Ενότητες ειδήσεων",
+      "latest": "Τελευταία"
+    },
+    "front": {
+      "railTitle": "Περισσότερες κορυφαίες ειδήσεις",
+      "latestTitle": "Τελευταία",
+      "emptyLatest": "Περισσότερες ειδήσεις θα εμφανιστούν εδώ καθώς δημοσιεύονται.",
+      "loadMore": {
+        "loading": "Φόρτωση περισσότερων άρθρων...",
+        "complete": "Δεν υπάρχουν άλλα άρθρα για φόρτωση"
+      }
+    },
+    "vertical": {
+      "tagline": "Τελευταία αρθρογραφία για {category} από όλο το οικοσύστημα Solana",
+      "eyebrow": "Κατηγορία ειδήσεων",
+      "description": "Τελευταία άρθρα, ενημερώσεις και αναλύσεις από την κατηγορία ειδήσεων {category}."
+    },
+    "sectionHeader": {
+      "viewAll": "Προβολή όλων"
+    },
+    "metadata": {
+      "listing": {
+        "title": "Solana News: Ενημερώσεις Οικοσυστήματος και Προγραμματιστών",
+        "description": "Διαβάστε τα τελευταία νέα της Solana, ενημερώσεις οικοσυστήματος, εκδόσεις για προγραμματιστές, κάλυψη DeFi, θεσμική υιοθέτηση και ιστορίες κοινότητας από ολόκληρο το δίκτυο."
+      },
+      "postNotFound": {
+        "title": "Η ανάρτηση δεν βρέθηκε"
+      },
+      "categoryNotFound": {
+        "title": "Η κατηγορία δεν βρέθηκε"
+      },
+      "category": {
+        "title": "Ειδήσεις {category}",
+        "description": "Διαβάστε τα τελευταία νέα {category}, ενημερώσεις προϊόντων, ιστορίες οικοσυστήματος, εκδόσεις για προγραμματιστές και αναλύσεις από ολόκληρο το δίκτυο Solana."
+      }
+    },
+    "campaignHero": {
+      "regionLabel": "Προτεινόμενη εκδήλωση"
+    },
+    "campaigns": {
+      "breakpoint-2026": {
+        "eyebrow": "Solana Breakpoint 2026",
+        "title": "Το Breakpoint έρχεται στο Λονδίνο",
+        "description": "Το κορυφαίο συνέδριο του οικοσυστήματος Solana φτάνει στο Olympia London, 15–17 Νοεμβρίου 2026. Συμμετέχετε στους δημιουργούς, τα ιδρύματα και τους υπεύθυνους χάραξης πολιτικής που διαμορφώνουν τις αγορές κεφαλαίου στο διαδίκτυο.",
+        "primaryCta": "Εγγραφή για το Breakpoint",
+        "secondaryCta": "Γίνετε χορηγός",
+        "imageAlt": "Λογότυπο Breakpoint 2026 πάνω από έναν μοβ ορίζοντα του Λονδίνου"
+      }
+    }
+  },
+  "upgrades": {
+    "metadata": {
+      "title": "Αναβαθμίσεις Δικτύου Solana",
+      "description": "Παρακολουθήστε τις αναβαθμίσεις δικτύου Solana, την υποστήριξη πελατών, τις αλλαγές πρωτοκόλλου, την κατάσταση κυκλοφορίας και τις βελτιώσεις απόδοσης σε ολόκληρο το οικοσύστημα.",
+      "notFound": "Η Αναβάθμιση Δεν Βρέθηκε"
+    },
+    "listing": {
+      "kicker": "Ειδοποιήσεις αναβαθμίσεων δικτύου",
+      "title": "Αναβαθμίσεις Solana",
+      "description": "Παρακολουθήστε τις αλλαγές δικτύου, τις ενέργειες validator, την υποστήριξη πελατών και την κατάσταση κυκλοφορίας για αναβαθμίσεις πρωτοκόλλου και απόδοσης του Solana.",
+      "empty": "Δεν βρέθηκαν δημοσιευμένες αναβαθμίσεις.",
+      "releaseLabel": "Έκδοση",
+      "allReleases": "Όλες οι εκδόσεις",
+      "releaseOption": "{name} — {status}",
+      "expectedDate": "Αναμένεται {date}",
+      "releaseOverview": "Επισκόπηση έκδοσης",
+      "viewDetails": "Προβολή λεπτομερειών",
+      "viewList": "Λίστα",
+      "viewGrid": "Πλέγμα",
+      "columnUpgrade": "Αναβάθμιση",
+      "columnKeyMetric": "Βασική μετρική",
+      "columnStatus": "Κατάσταση"
+    },
+    "releaseStatus": {
+      "planned": "Προγραμματισμένη",
+      "shipped": "Κυκλοφόρησε"
+    },
+    "stage": {
+      "planned": "Προγραμματισμένη",
+      "in_development": "Υπό Ανάπτυξη",
+      "pending_activation": "Σε Αναμονή Ενεργοποίησης Λειτουργίας",
+      "live": "Ενεργή στο Mainnet"
+    },
+    "detail": {
+      "back": "Επιστροφή στις Αναβαθμίσεις",
+      "share": "Κοινοποίηση:",
+      "shareOnTwitter": "Κοινοποίηση στο Twitter",
+      "shareOnFacebook": "Κοινοποίηση στο Facebook",
+      "shareOnLinkedin": "Κοινοποίηση στο LinkedIn",
+      "shareOnTelegram": "Κοινοποίηση στο Telegram",
+      "bylineWithDate": "{date}, από {author}",
+      "byline": "Από {author}"
+    },
+    "featureActivation": {
+      "columnCluster": "Cluster",
+      "columnStatus": "Κατάσταση ενεργοποίησης",
+      "notActivated": "Μη ενεργοποιημένη",
+      "active": "Ενεργή",
+      "liveInEpoch": "Ενεργή στο Epoch {epoch}",
+      "unavailable": "Μη διαθέσιμη"
+    }
+  }
+}

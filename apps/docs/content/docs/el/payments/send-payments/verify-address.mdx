@@ -1,8 +1,7 @@
 ---
 title: Επαλήθευση διεύθυνσης
 description:
-  Μάθετε πώς να επαληθεύετε διευθύνσεις πριν από την αποστολή πληρωμών στο
-  Solana για να αποτρέψετε την απώλεια κεφαλαίων.
+  Learn how to verify addresses before sending payments on Solana to prevent fund loss.
 ---
 
 Η αποστολή κεφαλαίων σε λανθασμένη διεύθυνση μπορεί να οδηγήσει σε μόνιμη
@@ -63,7 +62,7 @@ description:
 
 Οι λογαριασμοί που ανήκουν στο System Program είναι τυπικά πορτοφόλια. Για να
 στείλετε SPL tokens σε ένα πορτοφόλι, παράγετε και χρησιμοποιείτε το
-[Associated Token Account (ATA)](/docs/tokens/basics/create-token-account#whats-an-associated-token-account)
+[Associated Token Account (ATA)](/docs/tokens/basics/create-token-account#what-is-an-associated-token-account)
 του.
 
 Αφού παράγετε τη διεύθυνση ATA, ελέγξτε αν το token account υπάρχει στο onchain.
@@ -235,11 +234,11 @@ flowchart TD
 
 Το demo παρακάτω χρησιμοποιεί τρία πιθανά αποτελέσματα:
 
-| Αποτέλεσμα         | Σημασία                      | Ενέργεια                                          |
-| ------------------ | ---------------------------- | ------------------------------------------------- |
+| Αποτέλεσμα             | Σημασία              | Ενέργεια                                      |
+| ------------------ | -------------------- | ------------------------------------------- |
 | `IS_WALLET`        | Έγκυρη διεύθυνση πορτοφολιού | Εξαγωγή και αποστολή στο associated token account |
-| `IS_TOKEN_ACCOUNT` | Έγκυρο token account         | Αποστολή tokens απευθείας σε αυτή τη διεύθυνση    |
-| `REJECT`           | Μη έγκυρη διεύθυνση          | Μην αποστείλετε                                   |
+| `IS_TOKEN_ACCOUNT` | Έγκυρο token account  | Αποστολή tokens απευθείας σε αυτή τη διεύθυνση        |
+| `REJECT`           | Μη έγκυρη διεύθυνση      | Μην αποστείλετε                                 |
 
 Στη συνέχεια αντιστοιχεί κάθε αποτέλεσμα στην αποδεκτότητα ανά στοιχείο με
 `canReceiveNativeSol` (μόνο πορτοφόλια) και `canReceiveSplToken` (πορτοφόλια ή
@@ -267,7 +266,7 @@ import {
 // Constants
 // =============================================================================
 
-const defaultRpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
+const defaultRpc = createSolanaRpc("https://api.mainnet.solana.com");
 
 const SYSTEM_PROGRAM = "11111111111111111111111111111111" as Address;
 const TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address;

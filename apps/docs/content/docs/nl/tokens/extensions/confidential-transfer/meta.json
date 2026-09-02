@@ -1,5 +1,5 @@
 {
-  "title": "Vertrouwelijke overdracht",
+  "title": "Vertrouwelijke Saldi",
   "pages": [
     "create-mint",
     "create-token-account",
@@ -7,6 +7,7 @@
     "apply-pending-balance",
     "withdraw-tokens",
     "transfer-tokens",
+    "integration-guide",
     "issuer-guide"
   ]
 }

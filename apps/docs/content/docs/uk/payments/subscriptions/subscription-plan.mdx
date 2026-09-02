@@ -15,22 +15,18 @@ description: Посібник з налаштування транзакцій �
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```bash
     pnpm add @solana/subscriptions @solana/kit @solana/kit-plugin-rpc @solana/kit-plugin-signer @solana-program/token
     ```
-
   </Tab>
 
   <Tab value="Rust">
-
     ```toml
     [dependencies]
-    subscriptions = "^0.1"
-    solana-instruction = "^2"
+    subscriptions = "0.5.0"
+    solana-instruction = "^3"
     solana-address = { version = "^2", features = ["curve25519"] }
     ```
-
   </Tab>
 </Tabs>
 
@@ -38,9 +34,12 @@ description: Посібник з налаштування транзакцій �
 
 Продавець є власником плану. PDA плану виводиться з адреси продавця та `planId`.
 
+Спонсор може фінансувати rent плану, передавши необов'язковий параметр `payer`, тоді як
+мерчант залишається власником плану. Видалення плану повертає кошти власнику, а не
+платнику, тому керуйте спонсорством поза мережею.
+
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { address, createClient } from '@solana/kit';
     import { solanaLocalRpc } from '@solana/kit-plugin-rpc';
@@ -82,7 +81,6 @@ description: Посібник з налаштування транзакцій �
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use solana_address::{address, Address};
     use subscriptions::{generated::{instructions::*, types::*}, SUBSCRIPTIONS_ID};
@@ -138,9 +136,25 @@ description: Посібник з налаштування транзакцій �
 підписники зберігають умови, які вони прийняли, тоді як нові підписники
 приймають поточні умови плану.
 
+Діють кілька правил:
+
+- Кінцевий `endTs` можна лише скоротити, але не продовжити або очистити
+  (`PlanEndTsCannotExtend`).
+- У плані `Sunset` можна видалити пулери (новий набір має бути підмножиною
+  поточного), щоб відкликати скомпрометований пулер; статус, `endTs` і метадані
+  залишаються незмінними.
+- Редагування дозволяється протягом останнього розрахункового періоду плану,
+  якщо `endTs` не змінюється.
+- Інструкція містить стан плану, зафіксований під час підписання
+  (`expectedCreatedAt`, `expectedEndTs`, `expectedPullers`,
+  `expectedMetadataUri`). Якщо поточний план більше не відповідає цьому стану, оновлення
+  відхиляється (`StalePlanApproval`), тому застаріле підписане оновлення не може відновити
+  видалених пулерів або скасувати пізніші зміни. Метод `updatePlan` клієнта плагіна
+  автоматично отримує актуальний стан; під час ручного формування запиту отримайте план і
+  передайте поля самостійно.
+
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { PlanStatus } from '@solana/subscriptions';
 
@@ -162,7 +176,6 @@ description: Посібник з налаштування транзакцій �
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     let new_puller: Address = address!("NEW_PULLER_WALLET_ADDRESS_HERE");
     let mut updated_pullers = [Address::default(); 4];
@@ -172,14 +185,25 @@ description: Посібник з налаштування транзакцій �
     let updated_metadata_bytes = b"https://example.com/updated-plan.json";
     updated_metadata_uri[..updated_metadata_bytes.len()].copy_from_slice(updated_metadata_bytes);
 
+    let (event_authority, _) =
+        Address::find_program_address(&[b"event_authority"], &SUBSCRIPTIONS_ID);
+
+    // Fetch and decode the live plan account before building UpdatePlanData.
+    let fetched_plan: Plan = fetched_plan;
+
     let update_plan_ix = UpdatePlanBuilder::new()
         .owner(merchant)
         .plan_pda(plan_pda)
+        .event_authority(event_authority)
         .update_plan_data(UpdatePlanData {
             status: PlanStatus::Active as u8,
             end_ts: 0,
             pullers: updated_pullers,
             metadata_uri: updated_metadata_uri,
+            expected_created_at: fetched_plan.data.terms.created_at,
+            expected_end_ts: fetched_plan.data.end_ts,
+            expected_pullers: fetched_plan.data.pullers,
+            expected_metadata_uri: fetched_plan.data.metadata_uri,
         })
         .instruction();
     ```
@@ -187,14 +211,21 @@ description: Посібник з налаштування транзакцій �
   </Tab>
 </Tabs>
 
-## Підписка
+## Підписатися
 
-Підписник приймає поточні умови плану. PDA підписки виводиться з PDA плану та
+Підписник приймає умови поточного плану. PDA підписки виводиться з PDA плану та
 адреси підписника.
+
+Щоб об'єднати ініціалізацію authority та підписку в одну транзакцію, передайте
+сентинел `UNKNOWN_INIT_ID` (експортується TypeScript SDK) як
+`expectedSubscriptionAuthorityInitId`. Програма приймає authority лише якщо
+вона була створена в поточному slot, тому сентинел підходить для нових реєстрацій; користувач,
+що повертається, authority якого була створена в більш ранньому slot, повинен передати справжній
+`initId` (клієнт плагіна отримає його автоматично), інакше виклик завершиться помилкою
+`StaleSubscriptionAuthority`.
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { createClient } from '@solana/kit';
     import { solanaLocalRpc } from '@solana/kit-plugin-rpc';
@@ -255,7 +286,6 @@ description: Посібник з налаштування транзакцій �
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use subscriptions::{accounts::Plan, generated::{instructions::*, types::*}};
 
@@ -311,15 +341,14 @@ description: Посібник з налаштування транзакцій �
   </Tab>
 </Tabs>
 
-## Стягнення платежу
+## Прийняти Платіж
 
-Комерсант або авторизований ініціатор підписує стягнення. Коли план використовує
-список дозволених отримувачів, власник токен-акаунта отримувача повинен бути
-вказаний у `destinations`.
+Мерчант або авторизований пулер підписує операцію збору коштів. Якщо план
+використовує дозволений список одержувачів, власник token account одержувача має
+бути вказаний у `destinations`.
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     const receiverAta = address('MERCHANT_TOKEN_ACCOUNT_ADDRESS_HERE');
 
@@ -340,7 +369,6 @@ description: Посібник з налаштування транзакцій �
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use subscriptions::{TransferData, TransferSubscriptionBuilder};
 
@@ -364,13 +392,12 @@ description: Посібник з налаштування транзакцій �
 
 ## Скасування та відкликання
 
-Скасування позначає підписку як таку, що закінчується. Відкликання закриває PDA
-підписки після закінчення терміну скасування. Підписник підписує обидві
+Скасування позначає підписку як таку, що завершується. Відкликання закриває PDA
+підписки після того, як минув термін дії скасування. Підписник підписує обидві
 транзакції.
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     await subscriberClient.subscriptions.instructions
       .cancelSubscription({
@@ -393,7 +420,6 @@ description: Посібник з налаштування транзакцій �
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use solana_instruction::AccountMeta;
     use subscriptions::generated::instructions::*;
@@ -415,15 +441,125 @@ description: Посібник з налаштування транзакцій �
   </Tab>
 </Tabs>
 
+## Негайне скасування
+
+Коли і підписник, і поточний власник плану підписують запит,
+`cancelSubscriptionNow` завершує підписку в момент скасування, а не
+наприкінці розрахункового періоду. Також можна скоротити очікуване скасування в пільговому періоді. Підтвердження прив'язане до початку розрахункового періоду, зафіксованого під час підписання; якщо
+підписка змінилася відтоді, транзакція відхиляється
+(`StaleSubscriptionApproval`).
+
+<Tabs items={["TypeScript", "Rust"]}>
+  <Tab value="TypeScript">
+    ```ts
+    import { fetchSubscriptionDelegation } from '@solana/subscriptions';
+
+    const subscription = await fetchSubscriptionDelegation(
+      subscriberClient.rpc,
+      subscriptionPda,
+    );
+
+    await subscriberClient.subscriptions.instructions
+      .cancelSubscriptionNow({
+        subscriber: subscriberSigner,
+        merchant: merchantSigner,
+        planPda,
+        expectedCurrentPeriodStartTs: subscription.data.currentPeriodStartTs,
+      })
+      .sendTransaction();
+    ```
+
+  </Tab>
+
+  <Tab value="Rust">
+    ```rust
+    use subscriptions::{accounts::SubscriptionDelegation, generated::{instructions::*, types::*}};
+
+    // Fetch and decode the subscription account before building the data.
+    let fetched_subscription: SubscriptionDelegation = fetched_subscription;
+
+    let cancel_now_ix = CancelSubscriptionNowBuilder::new()
+        .subscriber(subscriber)
+        .merchant(merchant)
+        .plan_pda(plan_pda)
+        .subscription_pda(subscription_pda)
+        .event_authority(event_authority)
+        .cancel_subscription_now_data(CancelSubscriptionNowData {
+            expected_current_period_start_ts: fetched_subscription.current_period_start_ts,
+        })
+        .instruction();
+    ```
+
+  </Tab>
+</Tabs>
+
+## Відновлення підписки
+
+Скасовану підписку можна повторно активувати до її відкликання. Після
+відкликання обліковий запис підписки закривається, і підписник повинен
+[підписатися](#subscribe) знову. Для відновлення потрібен
+`SubscriptionAuthority` підписника для монети плану, який програма перевіряє
+(власник, монета та `init_id`) і відхиляє, якщо він застарілий або повторно
+ініціалізований.
+
+Інструкція містить термін дії, зафіксований підписником під час підписання
+(`expectedExpiresAtTs`); розбіжність призводить до відхилення (`StaleSubscriptionApproval`),
+тому застаріле підписане відновлення не може скасувати пізніше скасування, яке підписник
+ніколи не затверджував.
+
+<Tabs items={["TypeScript", "Rust"]}>
+  <Tab value="TypeScript">
+    ```ts
+    import { fetchSubscriptionDelegation } from '@solana/subscriptions';
+
+    const subscription = await fetchSubscriptionDelegation(
+      subscriberClient.rpc,
+      subscriptionPda,
+    );
+
+    await subscriberClient.subscriptions.instructions
+      .resumeSubscription({
+        subscriber: subscriberSigner,
+        planPda,
+        tokenMint,
+        expectedExpiresAtTs: subscription.data.expiresAtTs,
+      })
+      .sendTransaction();
+    ```
+
+  </Tab>
+
+  <Tab value="Rust">
+    ```rust
+    use subscriptions::generated::instructions::*;
+
+    let (event_authority, _) =
+        Address::find_program_address(&[b"event_authority"], &SUBSCRIPTIONS_ID);
+
+    let resume_ix = ResumeSubscriptionBuilder::new()
+        .subscriber(subscriber)
+        .plan_pda(plan_pda)
+        .subscription_pda(subscription_pda)
+        .subscription_authority(subscription_authority)
+        .event_authority(event_authority)
+        .resume_data(ResumeData {
+            expected_expires_at_ts: fetched_subscription.expires_at_ts,
+        })
+        .instruction();
+    ```
+
+  </Tab>
+</Tabs>
+
 ## Примітки
 
 - `amount` вказується в базових одиницях. Для токена з 6 десятковими знаками
   `5_000_000` означає `5` токенів.
-- TypeScript SDK отримує актуальні умови плану під час `subscribe`, коли ви їх
+- TypeScript SDK отримує актуальні умови плану під час `subscribe`, якщо ви їх
   не вказуєте.
 - Rust `SubscribeBuilder` потребує очікуваних умов плану. Спочатку отримайте та
   декодуйте обліковий запис плану, а потім передайте ці поля через
   `SubscribeData`.
-- Тільки продавець або гаманець, вказаний у `pullers`, може отримувати платежі.
-- Підписник підписує транзакції налаштування, скасування та відкликання.
-  Продавець або уповноважений збирач підписує транзакції збору.
+- Лише мерчант або гаманець, зазначений у `pullers`, може збирати платежі.
+- Підписник підписує транзакції налаштування, скасування та відкликання. Мерчант
+  або авторизований збирач підписує транзакції збору платежів.

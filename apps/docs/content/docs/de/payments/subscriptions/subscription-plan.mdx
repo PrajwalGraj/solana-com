@@ -16,22 +16,18 @@ zieht Zahlungen aus dem resultierenden Abonnement-PDA ein.
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```bash
     pnpm add @solana/subscriptions @solana/kit @solana/kit-plugin-rpc @solana/kit-plugin-signer @solana-program/token
     ```
-
   </Tab>
 
   <Tab value="Rust">
-
     ```toml
     [dependencies]
-    subscriptions = "^0.1"
-    solana-instruction = "^2"
+    subscriptions = "0.5.0"
+    solana-instruction = "^3"
     solana-address = { version = "^2", features = ["curve25519"] }
     ```
-
   </Tab>
 </Tabs>
 
@@ -40,9 +36,10 @@ zieht Zahlungen aus dem resultierenden Abonnement-PDA ein.
 Der Händler ist Eigentümer des Plans. Der Plan-PDA wird von der Händleradresse
 und `planId` abgeleitet.
 
+Ein Sponsor kann die rent des Plans finanzieren, indem er den optionalen `payer` übergibt, während der Händler der Eigentümer des Plans bleibt. Das Löschen des Plans erstattet den Betrag dem Eigentümer, nicht dem Zahler – daher sollte die Sponsorschaft off-chain gesteuert werden.
+
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { address, createClient } from '@solana/kit';
     import { solanaLocalRpc } from '@solana/kit-plugin-rpc';
@@ -84,7 +81,6 @@ und `planId` abgeleitet.
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use solana_address::{address, Address};
     use subscriptions::{generated::{instructions::*, types::*}, SUBSCRIPTIONS_ID};
@@ -140,9 +136,21 @@ Der Händler kann veränderbare Planfelder nach der Erstellung aktualisieren.
 Bestehende Abonnenten behalten die von ihnen akzeptierten Bedingungen bei,
 während neue Abonnenten die aktuellen Planbedingungen akzeptieren.
 
+Es gelten einige Regeln:
+
+- Eine endliche `endTs` kann nur verkürzt, niemals verlängert oder gelöscht
+  werden (`PlanEndTsCannotExtend`).
+- Bei einem `Sunset`-Plan können Sie Puller entfernen (die neue Gruppe muss eine
+  Teilmenge der aktuellen sein), um einen kompromittierten Puller zu sperren;
+  Status, `endTs` und Metadaten bleiben eingefroren.
+- Änderungen sind während der letzten Abrechnungsperiode eines Plans möglich,
+  solange `endTs` unverändert bleibt.
+- Die Anweisung enthält den Planzustand, der beim Signieren beobachtet wurde
+  (`expectedCreatedAt`, `expectedEndTs`, `expectedPullers`,
+  `expectedMetadataUri`). Stimmt der aktuelle Plan nicht mehr überein, wird die Aktualisierung abgelehnt (`StalePlanApproval`). Eine veraltete signierte Aktualisierung kann daher weder entfernte Puller wiederherstellen noch spätere Änderungen rückgängig machen. Der `updatePlan`-Aufruf des Plugin-Clients ruft den aktuellen Zustand automatisch ab; beim manuellen Erstellen müssen Sie den Plan selbst abrufen und die Felder übergeben.
+
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { PlanStatus } from '@solana/subscriptions';
 
@@ -164,7 +172,6 @@ während neue Abonnenten die aktuellen Planbedingungen akzeptieren.
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     let new_puller: Address = address!("NEW_PULLER_WALLET_ADDRESS_HERE");
     let mut updated_pullers = [Address::default(); 4];
@@ -174,14 +181,25 @@ während neue Abonnenten die aktuellen Planbedingungen akzeptieren.
     let updated_metadata_bytes = b"https://example.com/updated-plan.json";
     updated_metadata_uri[..updated_metadata_bytes.len()].copy_from_slice(updated_metadata_bytes);
 
+    let (event_authority, _) =
+        Address::find_program_address(&[b"event_authority"], &SUBSCRIPTIONS_ID);
+
+    // Fetch and decode the live plan account before building UpdatePlanData.
+    let fetched_plan: Plan = fetched_plan;
+
     let update_plan_ix = UpdatePlanBuilder::new()
         .owner(merchant)
         .plan_pda(plan_pda)
+        .event_authority(event_authority)
         .update_plan_data(UpdatePlanData {
             status: PlanStatus::Active as u8,
             end_ts: 0,
             pullers: updated_pullers,
             metadata_uri: updated_metadata_uri,
+            expected_created_at: fetched_plan.data.terms.created_at,
+            expected_end_ts: fetched_plan.data.end_ts,
+            expected_pullers: fetched_plan.data.pullers,
+            expected_metadata_uri: fetched_plan.data.metadata_uri,
         })
         .instruction();
     ```
@@ -192,11 +210,12 @@ während neue Abonnenten die aktuellen Planbedingungen akzeptieren.
 ## Abonnieren
 
 Der Abonnent akzeptiert die aktuellen Planbedingungen. Die Abonnement-PDA wird
-vom Plan-PDA und der Adresse des Abonnenten abgeleitet.
+aus der Plan-PDA und der Abonnentenadresse abgeleitet.
+
+Um die Initialisierung der Autorität und das Abonnieren in einer einzigen Transaktion zu bündeln, übergeben Sie den Sentinel `UNKNOWN_INIT_ID` (vom TypeScript-SDK exportiert) als `expectedSubscriptionAuthorityInitId`. Das Programm akzeptiert die Autorität nur, wenn sie im aktuellen slot erstellt wurde – daher funktioniert der Sentinel für neue Anmeldungen. Ein wiederkehrender Nutzer, dessen Autorität in einem früheren slot erstellt wurde, muss die echte `initId` übergeben (der Plugin-Client ruft sie für Sie ab), andernfalls schlägt der Aufruf mit `StaleSubscriptionAuthority` fehl.
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     import { createClient } from '@solana/kit';
     import { solanaLocalRpc } from '@solana/kit-plugin-rpc';
@@ -257,7 +276,6 @@ vom Plan-PDA und der Adresse des Abonnenten abgeleitet.
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use subscriptions::{accounts::Plan, generated::{instructions::*, types::*}};
 
@@ -315,13 +333,12 @@ vom Plan-PDA und der Adresse des Abonnenten abgeleitet.
 
 ## Eine Zahlung einziehen
 
-Der Händler oder ein auf der Whitelist stehender Einzieher signiert den Einzug.
-Wenn der Plan eine Ziel-Allowlist verwendet, muss der Eigentümer des
-Empfänger-token account in `destinations` aufgeführt sein.
+Der Händler oder ein autorisierter Puller unterzeichnet den Einzug. Wenn der
+Plan eine Ziel-Zulassungsliste verwendet, muss der Inhaber des Empfänger-token
+account in `destinations` aufgeführt sein.
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     const receiverAta = address('MERCHANT_TOKEN_ACCOUNT_ADDRESS_HERE');
 
@@ -342,7 +359,6 @@ Empfänger-token account in `destinations` aufgeführt sein.
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use subscriptions::{TransferData, TransferSubscriptionBuilder};
 
@@ -364,15 +380,14 @@ Empfänger-token account in `destinations` aufgeführt sein.
   </Tab>
 </Tabs>
 
-## Kündigen und Widerrufen
+## Abbrechen und Widerrufen
 
-Das Kündigen markiert das Abonnement als beendet. Das Widerrufen schließt die
-Abonnement-PDA, nachdem die Kündigungsfrist abgelaufen ist. Der Abonnent
-signiert beide Transaktionen.
+Das Abbrechen markiert das Abonnement als auslaufend. Das Widerrufen schließt
+das Abonnement-PDA, nachdem die Ablaufzeit der Kündigung verstrichen ist. Der
+Abonnent signiert beide Transaktionen.
 
 <Tabs items={["TypeScript", "Rust"]}>
   <Tab value="TypeScript">
-
     ```ts
     await subscriberClient.subscriptions.instructions
       .cancelSubscription({
@@ -395,7 +410,6 @@ signiert beide Transaktionen.
   </Tab>
 
   <Tab value="Rust">
-
     ```rust
     use solana_instruction::AccountMeta;
     use subscriptions::generated::instructions::*;
@@ -417,16 +431,119 @@ signiert beide Transaktionen.
   </Tab>
 </Tabs>
 
+## Sofort kündigen
+
+Wenn sowohl der Abonnent als auch der aktuelle Plan-Eigentümer signieren, lässt `cancelSubscriptionNow` das Abonnement zum Zeitpunkt der Kündigung ablaufen – anstatt am Ende des Abrechnungszeitraums. Es kann auch eine ausstehende Kündigung mit Nachfrist verkürzen. Die Genehmigung ist an den beim Signieren beobachteten Periodenbeginn gebunden; hat sich das Abonnement seitdem geändert, wird die Transaktion abgelehnt (`StaleSubscriptionApproval`).
+
+<Tabs items={["TypeScript", "Rust"]}>
+  <Tab value="TypeScript">
+    ```ts
+    import { fetchSubscriptionDelegation } from '@solana/subscriptions';
+
+    const subscription = await fetchSubscriptionDelegation(
+      subscriberClient.rpc,
+      subscriptionPda,
+    );
+
+    await subscriberClient.subscriptions.instructions
+      .cancelSubscriptionNow({
+        subscriber: subscriberSigner,
+        merchant: merchantSigner,
+        planPda,
+        expectedCurrentPeriodStartTs: subscription.data.currentPeriodStartTs,
+      })
+      .sendTransaction();
+    ```
+
+  </Tab>
+
+  <Tab value="Rust">
+    ```rust
+    use subscriptions::{accounts::SubscriptionDelegation, generated::{instructions::*, types::*}};
+
+    // Fetch and decode the subscription account before building the data.
+    let fetched_subscription: SubscriptionDelegation = fetched_subscription;
+
+    let cancel_now_ix = CancelSubscriptionNowBuilder::new()
+        .subscriber(subscriber)
+        .merchant(merchant)
+        .plan_pda(plan_pda)
+        .subscription_pda(subscription_pda)
+        .event_authority(event_authority)
+        .cancel_subscription_now_data(CancelSubscriptionNowData {
+            expected_current_period_start_ts: fetched_subscription.current_period_start_ts,
+        })
+        .instruction();
+    ```
+
+  </Tab>
+</Tabs>
+
+## Ein Abonnement Fortsetzen
+
+Ein gekündigtes Abonnement kann reaktiviert werden, bevor es widerrufen wird.
+Nach dem Widerruf wird das Abonnement-Konten geschlossen und der Abonnent muss
+erneut [abonnieren](#subscribe). Für die Fortsetzung benötigt der Abonnent
+`SubscriptionAuthority` für die Mint des Plans, den das Programm validiert
+(Inhaber, Mint und `init_id`) und ablehnt, wenn er veraltet oder neu
+initialisiert ist.
+
+Die Anweisung enthält das Ablaufdatum, das der Abonnent beim Signieren beobachtet hat (`expectedExpiresAtTs`); eine Abweichung wird abgelehnt (`StaleSubscriptionApproval`). Daher kann eine veraltete signierte Wiederaufnahme eine spätere Kündigung, der der Abonnent nie zugestimmt hat, nicht aufheben.
+
+<Tabs items={["TypeScript", "Rust"]}>
+  <Tab value="TypeScript">
+    ```ts
+    import { fetchSubscriptionDelegation } from '@solana/subscriptions';
+
+    const subscription = await fetchSubscriptionDelegation(
+      subscriberClient.rpc,
+      subscriptionPda,
+    );
+
+    await subscriberClient.subscriptions.instructions
+      .resumeSubscription({
+        subscriber: subscriberSigner,
+        planPda,
+        tokenMint,
+        expectedExpiresAtTs: subscription.data.expiresAtTs,
+      })
+      .sendTransaction();
+    ```
+
+  </Tab>
+
+  <Tab value="Rust">
+    ```rust
+    use subscriptions::generated::instructions::*;
+
+    let (event_authority, _) =
+        Address::find_program_address(&[b"event_authority"], &SUBSCRIPTIONS_ID);
+
+    let resume_ix = ResumeSubscriptionBuilder::new()
+        .subscriber(subscriber)
+        .plan_pda(plan_pda)
+        .subscription_pda(subscription_pda)
+        .subscription_authority(subscription_authority)
+        .event_authority(event_authority)
+        .resume_data(ResumeData {
+            expected_expires_at_ts: fetched_subscription.expires_at_ts,
+        })
+        .instruction();
+    ```
+
+  </Tab>
+</Tabs>
+
 ## Hinweise
 
-- `amount` ist in Basiseinheiten angegeben. Bei einem Token mit 6 Dezimalstellen
-  bedeutet `5_000_000` `5` Token.
-- Das TypeScript SDK ruft während `subscribe` die aktuellen Planbedingungen ab,
-  wenn Sie diese weglassen.
-- Der Rust `SubscribeBuilder` benötigt die erwarteten Planbedingungen. Rufen Sie
+- `amount` ist in Basiseinheiten. Bei einem Token mit 6 Dezimalstellen bedeutet
+  `5_000_000` `5` Token.
+- Das TypeScript-SDK ruft aktuelle Planbedingungen während `subscribe` ab, wenn
+  diese weggelassen werden.
+- Das Rust-`SubscribeBuilder` benötigt die erwarteten Planbedingungen. Rufen Sie
   zunächst das Plan-Konten ab und dekodieren Sie es, und übergeben Sie dann
   diese Felder über `SubscribeData`.
 - Nur der Händler oder eine in `pullers` aufgeführte Wallet kann Zahlungen
   einziehen.
-- Der Abonnent signiert Einrichtungs-, Kündigungs- und Widerrufstransaktionen.
-  Der Händler oder autorisierte Einzieher signiert Einzugstransaktionen.
+- Der Abonnent signiert Einrichtungs-, Abbruch- und Widerrufstransaktionen. Der
+  Händler oder ein autorisierter Einzieher signiert Einzugstransaktionen.

@@ -18,33 +18,15 @@ export const SOLUTION_LINKS = [
 export const TECHNICAL_GUIDES = [
   {
     key: "dvp",
-    href: "/developers/guides/advanced/dvp",
+    href: "/docs/tokenization/dvp",
   },
   {
     key: "nav-strikes",
-    href: "/developers/guides/advanced/nav-strikes",
+    href: "/docs/tokenization/nav-strikes",
   },
   {
     key: "acl",
-    href: "/developers/guides/advanced/acl",
-  },
-];
-
-// FAQ items
-export const FAQ_ITEMS = [
-  {
-    key: "tokenization",
-    link: "/solutions/tokenization",
-  },
-  {
-    key: "custody",
-    link: "/docs/tools/keychain",
-  },
-  {
-    key: "compliance",
-    link: "/docs/tokens/extensions",
-    secondaryLink: "https://github.com/solana-foundation/token-acl",
-    secondaryLinkLabel: "Token ACL",
+    href: "/docs/tokenization/token-acl",
   },
 ];
 

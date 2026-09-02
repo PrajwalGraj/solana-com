@@ -1,5 +1,5 @@
 {
-  "title": "Trasferimento confidenziale",
+  "title": "Saldi Riservati",
   "pages": [
     "create-mint",
     "create-token-account",
@@ -7,6 +7,7 @@
     "apply-pending-balance",
     "withdraw-tokens",
     "transfer-tokens",
+    "integration-guide",
     "issuer-guide"
   ]
 }

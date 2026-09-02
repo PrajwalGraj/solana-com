@@ -1,11 +1,8 @@
 ---
 title: Abhängigkeiten installieren
-seoTitle:
-  Installieren Sie die notwendigen Abhängigkeiten für die Entwicklung mit Solana
+seoTitle: Installieren Sie die notwendigen Abhängigkeiten für die Entwicklung mit Solana
 description:
-  Eine Anleitung zum Einrichten Ihrer lokalen Solana-Entwicklungsumgebung.
-  Erfahren Sie, wie Sie Rust, die Solana CLI und das Anchor Framework unter
-  Windows (WSL), Linux und Mac installieren.
+  Eine Anleitung zum Einrichten Ihrer lokalen Solana-Entwicklungsumgebung. Erfahren Sie, wie Sie Rust, die Solana CLI und das Anchor Framework unter Windows (WSL), Linux und Mac installieren.
 ---
 
 Eine Anleitung zum Einrichten Ihrer lokalen Solana-Entwicklungsumgebung.
@@ -412,10 +409,10 @@ installieren, folgen Sie den nachstehenden Schritten:
 1. Installieren Sie AVM mit folgendem Befehl:
 
 ```terminal
-$ cargo install --git https://github.com/solana-foundation/anchor avm --force
+$ curl -sSfL https://raw.githubusercontent.com/otter-sec/anchor/master/avm/install | sh
 ```
 
-2. Bestätigen Sie, dass AVM erfolgreich installiert wurde:
+2.  Bestätigen Sie, dass AVM erfolgreich installiert wurde:
 
 ```terminal
 $ avm --version
@@ -449,7 +446,7 @@ error: could not exec the linker cc = note: Permission denied (os error 13)
 Wenn Sie diese Fehlermeldung sehen, befolgen Sie diese Schritte:
 
 1. Installieren Sie die Abhängigkeiten, die im Abschnitt
-   [Linux](/docs/intro/installation#install-dependencies) am Anfang dieser Seite
+   [Linux](/docs/intro/installation/dependencies) am Anfang dieser Seite
    aufgeführt sind.
 2. Versuchen Sie erneut, die Anchor CLI zu installieren.
 

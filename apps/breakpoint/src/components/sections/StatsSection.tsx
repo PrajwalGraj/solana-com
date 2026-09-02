@@ -8,7 +8,8 @@ import ImageTreatment, {
 import Button from "@/components/Button";
 import SectionHeadline from "@/components/SectionHeadline";
 import WordReveal from "@/components/WordReveal";
-import { BREAKPOINT_2025_ARCHIVES_URL } from "@/content/links";
+import { GENERAL_ADMISSION_HREF } from "@/content/links";
+import { useVariant } from "@/lib/use-variant";
 
 interface StatItem {
   key: string;
@@ -19,22 +20,28 @@ interface StatItem {
 
 const statItems: StatItem[] = [
   {
-    key: "attendees",
-    valueKey: "stats.items.attendees.value",
-    suffixKey: "stats.items.attendees.suffix",
-    labelKey: "stats.items.attendees.label",
+    key: "transactions",
+    valueKey: "stats.items.transactions.value",
+    suffixKey: "stats.items.transactions.suffix",
+    labelKey: "stats.items.transactions.label",
   },
   {
-    key: "countries",
-    valueKey: "stats.items.countries.value",
-    suffixKey: "stats.items.countries.suffix",
-    labelKey: "stats.items.countries.label",
+    key: "stablecoinVolume",
+    valueKey: "stats.items.stablecoinVolume.value",
+    suffixKey: "stats.items.stablecoinVolume.suffix",
+    labelKey: "stats.items.stablecoinVolume.label",
   },
   {
-    key: "settlement",
-    valueKey: "stats.items.settlement.value",
-    suffixKey: "stats.items.settlement.suffix",
-    labelKey: "stats.items.settlement.label",
+    key: "rwaValue",
+    valueKey: "stats.items.rwaValue.value",
+    suffixKey: "stats.items.rwaValue.suffix",
+    labelKey: "stats.items.rwaValue.label",
+  },
+  {
+    key: "tokenizedEquity",
+    valueKey: "stats.items.tokenizedEquity.value",
+    suffixKey: "stats.items.tokenizedEquity.suffix",
+    labelKey: "stats.items.tokenizedEquity.label",
   },
 ];
 
@@ -58,6 +65,17 @@ const widths = [
 const stripColors: TreatmentColor[] = ["green", "purple", "blue"];
 export default function StatsSection() {
   const t = useTranslations("breakpoint");
+  const variant = useVariant();
+
+  const stats = variant
+    ? variant.stats
+    : statItems.map((item) => ({
+        value: t(item.valueKey),
+        suffix: t(item.suffixKey),
+        label: t(item.labelKey),
+      }));
+  const gridColsClass =
+    stats.length === 4 ? "md:grid-cols-4" : "md:grid-cols-3";
 
   return (
     <section className="pt-20 md:pt-[120px]">
@@ -66,8 +84,8 @@ export default function StatsSection() {
           <SectionHeadline headline={t("stats.headline")} alignment="center">
             <Button
               arrow
-              href={BREAKPOINT_2025_ARCHIVES_URL}
-              label={t("stats.cta")}
+              href={GENERAL_ADMISSION_HREF}
+              label={t("tickets.cta")}
               rel="noreferrer"
               target="_blank"
               variant="primary"
@@ -75,22 +93,25 @@ export default function StatsSection() {
           </SectionHeadline>
         </div>
 
-        <div className="mt-xl flex flex-col gap-s md:mt-16 md:grid md:grid-cols-3 md:gap-6">
-          {statItems.map((item, idx) => (
+        <div
+          key={variant?.slug ?? "default"}
+          className={`mt-xl flex flex-col gap-s md:mt-16 md:grid md:gap-6 ${gridColsClass}`}
+        >
+          {stats.map((item, idx) => (
             <div
-              key={item.key}
+              key={`${item.label}-${idx}`}
               className="flex flex-col items-center gap-xs text-center md:gap-3 md:pb-4"
             >
               <WordReveal
                 as="span"
-                text={`${t(item.valueKey)}${t(item.suffixKey)}`}
+                text={`${item.value}${item.suffix}`}
                 stepMs={120}
                 startDelayMs={idx * 140}
                 className="type-h2 block text-white"
               />
               <WordReveal
                 as="p"
-                text={t(item.labelKey)}
+                text={item.label}
                 stepMs={55}
                 startDelayMs={idx * 140 + 180}
                 className="type-eyebrow text-white md:max-w-[40ch]"

@@ -15,9 +15,14 @@ export type SponsorLogo = {
 };
 
 export type SponsorTier = {
+  id: string;
   title: string;
   mobileColumns: string;
-  mobileLogoScale: number;
+  mobileLogoMaxWidth: number;
+  mobileLogoMaxHeight: number;
+  logoMaxWidth: number;
+  logoMaxHeight: number;
+  cellAspectRatio: number;
   columns: string;
   cellAspect: string;
   sponsors: SponsorLogo[];
@@ -48,6 +53,26 @@ const platinumSponsors = [
     width: 181.818,
     height: 32,
   },
+  {
+    companyId: "solflare",
+    width: 230.648,
+    height: 55.2,
+  },
+  {
+    companyId: "bridge",
+    width: 204,
+    height: 96,
+  },
+  {
+    companyId: "phantom",
+    width: 279.68,
+    height: 55.2,
+  },
+  {
+    companyId: "nodit",
+    width: 1000,
+    height: 381.62,
+  },
 ] satisfies SponsorLogo[];
 
 const goldSponsors = [
@@ -64,7 +89,7 @@ const goldSponsors = [
   {
     companyId: "vybe-network",
     width: 2400,
-    height: 1176,
+    height: 368,
   },
   {
     companyId: "alchemy",
@@ -102,6 +127,81 @@ const goldSponsors = [
     width: 1118.91,
     height: 150,
   },
+  {
+    companyId: "sidley",
+    width: 1911,
+    height: 440,
+  },
+  {
+    companyId: "rain",
+    width: 300,
+    height: 91.13,
+  },
+  {
+    companyId: "kast",
+    width: 384,
+    height: 80,
+  },
+  {
+    companyId: "raiku",
+    width: 2646,
+    height: 768,
+  },
+  {
+    companyId: "render-network",
+    width: 1933,
+    height: 233,
+  },
+  {
+    companyId: "sec3",
+    width: 450,
+    height: 149,
+  },
+  {
+    companyId: "quicknode",
+    width: 2193,
+    height: 512,
+  },
+  {
+    companyId: "galaxy",
+    width: 3602,
+    height: 1031,
+  },
+  {
+    companyId: "colosseum",
+    width: 1777,
+    height: 230,
+  },
+  {
+    companyId: "asymmetric-research",
+    width: 608,
+    height: 118,
+  },
+  {
+    companyId: "gmgn",
+    width: 84,
+    height: 95,
+  },
+  {
+    companyId: "redotpay",
+    width: 359,
+    height: 66,
+  },
+  {
+    companyId: "collector-crypt",
+    width: 1048,
+    height: 393,
+  },
+  {
+    companyId: "moneygram",
+    width: 1708,
+    height: 431,
+  },
+  {
+    companyId: "paxos",
+    width: 2004,
+    height: 543,
+  },
 ] satisfies SponsorLogo[];
 
 const activationSponsors = [
@@ -114,17 +214,27 @@ const activationSponsors = [
 
 export const sponsorTiers = [
   {
+    id: "platinum",
     title: "Platinum",
     mobileColumns: "grid-cols-1",
-    mobileLogoScale: 0.6,
-    columns: "md:grid-cols-3",
+    mobileLogoMaxWidth: 0.76,
+    mobileLogoMaxHeight: 0.62,
+    logoMaxWidth: 0.72,
+    logoMaxHeight: 0.62,
+    cellAspectRatio: 2,
+    columns: "md:grid-cols-4",
     cellAspect: "aspect-[442/221]",
     sponsors: platinumSponsors,
   },
   {
+    id: "gold",
     title: "Gold",
     mobileColumns: "grid-cols-2",
-    mobileLogoScale: 0.64,
+    mobileLogoMaxWidth: 0.7,
+    mobileLogoMaxHeight: 0.56,
+    logoMaxWidth: 0.68,
+    logoMaxHeight: 0.56,
+    cellAspectRatio: 2,
     columns: "md:grid-cols-5",
     cellAspect: "aspect-[256/128]",
     sponsors: goldSponsors,
